@@ -28,10 +28,10 @@ const nav = [
 const tabs = [
   { to: '/', label: 'Início', icon: 'home' },
   { to: '/transacoes', label: 'Transações', icon: 'list' },
-  { to: '/previsao', label: 'Previsão', icon: 'target' },
+  { to: '/orcamento', label: 'Orçamento', icon: 'grid' },
 ]
 const more = [
-  { to: '/orcamento', label: 'Orçamento', icon: 'grid', hint: 'Grelha do ano, mês a mês' },
+  { to: '/previsao', label: 'Previsão', icon: 'target', hint: 'Previsto vs real do mês, por conta' },
   { to: '/investimentos', label: 'Investimentos', icon: 'trend', hint: 'Valor, reforços e ganhos' },
   { to: '/categorias', label: 'Categorias', icon: 'tag', hint: 'Categorias e subcategorias' },
   { to: '/definicoes', label: 'Definições', icon: 'settings', hint: 'Contas, data de início, cópia de segurança' },
