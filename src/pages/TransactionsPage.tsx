@@ -1,3 +1,4 @@
+import { TransferItem, TxItem } from '../components/TxItem'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -39,6 +40,7 @@ export default function TransactionsPage() {
   const [toDelete, setToDelete] = useState<Transaction | null>(null)
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [transferToDelete, setTransferToDelete] = useState<Transfer | null>(null)
+  const [showFilters, setShowFilters] = useState(false) // phones: filters fold away behind a button
   // Transfers have no category: they only show when no category filter is active (and on the first page).
   const showTransfers = (type === '' || type === 'Transfer') && !categoryId && !subCategoryId && page === 1
 
@@ -106,6 +108,14 @@ export default function TransactionsPage() {
   const categoryOptions = type === 'Transfer' ? [] : categories.filter((c) => !type || c.type === type)
   const selectedCategory = categories.find((c) => c.id === categoryId)
   const hasFilters = type || categoryId || subCategoryId || accountId || search
+  const filterCount = [type, categoryId, subCategoryId, accountId].filter(Boolean).length
+
+  // Phones: one list grouped by day.
+  const days: { date: string; rows: Row[] }[] = []
+  for (const row of rows) {
+    if (days[days.length - 1]?.date !== row.date) days.push({ date: row.date, rows: [] })
+    days[days.length - 1].rows.push(row)
+  }
 
   const move = (delta: number) => {
     if (period === 'month') {
@@ -197,7 +207,7 @@ export default function TransactionsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Transações</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">Transações</h1>
         <div className="flex items-center gap-2">
           <select
             className="input h-8 w-auto"
@@ -220,8 +230,33 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <div className="card flex flex-wrap items-end gap-3 p-3">
-        <div className="w-32">
+      <div className="flex gap-2 md:hidden">
+        <div className="relative flex-1">
+          <Icon name="search" className="absolute top-3.5 left-3 text-muted" />
+          <input
+            className="input rounded-xl pl-9"
+            type="search"
+            value={searchText}
+            placeholder="Pesquisar descrição"
+            aria-label="Pesquisa na descrição"
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          className={cx('btn rounded-xl', (showFilters || filterCount > 0) && 'border-inc text-inc')}
+          aria-expanded={showFilters}
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          Filtros
+          {filterCount > 0 && (
+            <span className="flex size-5 items-center justify-center rounded-full bg-inc text-[11px] text-white">{filterCount}</span>
+          )}
+        </button>
+      </div>
+
+      <div className={cx('card gap-3 p-3 md:flex md:flex-wrap md:items-end', showFilters ? 'grid grid-cols-2' : 'hidden')}>
+        <div className="md:w-32">
           <label className="label">Tipo</label>
           <select
             className="input"
@@ -234,7 +269,7 @@ export default function TransactionsPage() {
             <option value="Transfer">Transferência</option>
           </select>
         </div>
-        <div className="w-44">
+        <div className="md:w-44">
           <label className="label">Categoria</label>
           <select
             className="input"
@@ -250,7 +285,7 @@ export default function TransactionsPage() {
             ))}
           </select>
         </div>
-        <div className="w-52">
+        <div className="md:w-52">
           <label className="label">Subcategoria</label>
           <select
             className="input"
@@ -266,7 +301,7 @@ export default function TransactionsPage() {
             ))}
           </select>
         </div>
-        <div className="w-40">
+        <div className="md:w-40">
           <label className="label">Conta</label>
           <select className="input" value={accountId} onChange={(e) => update({ acc: e.target.value || null })}>
             <option value="">Todas</option>
@@ -278,7 +313,7 @@ export default function TransactionsPage() {
             ))}
           </select>
         </div>
-        <div className="min-w-48 flex-1">
+        <div className="hidden min-w-48 flex-1 md:block">
           <label className="label">Pesquisa na descrição</label>
           <div className="relative">
             <Icon name="search" className="absolute top-2.5 left-2.5 text-muted" />
@@ -293,7 +328,7 @@ export default function TransactionsPage() {
         {hasFilters && (
           <button
             type="button"
-            className="btn-ghost"
+            className="btn-ghost col-span-2"
             onClick={() => {
               setSearchText('')
               update({ type: null, cat: null, sub: null, acc: null, q: null })
@@ -306,7 +341,52 @@ export default function TransactionsPage() {
 
       {error && <div className="card border-exp/40 bg-exp-row px-4 py-3 text-sm">{error}</div>}
 
-      <div className="card overflow-hidden">
+      {/* Phones: totals on top, then the list grouped by day */}
+      {data && rows.length > 0 && (
+        <div className="card grid grid-cols-2 gap-x-4 gap-y-2 p-4 md:hidden">
+          <Total label="Receitas" value={data.totals.income} className="text-pos" />
+          <Total label="Despesas" value={data.totals.expense} className="text-neg" />
+          {data.totals.invested !== 0 && <Total label="Investido" value={data.totals.invested} className="text-[var(--c-sav)]" />}
+          <Total label="Saldo" value={data.totals.net} className={data.totals.net >= 0 ? 'text-pos' : 'text-neg'} />
+          <p className="col-span-2 text-xs text-muted">
+            {type !== 'Transfer' && <>{data.totalCount} transaç{data.totalCount === 1 ? 'ão' : 'ões'}</>}
+            {transfers.length > 0 && (
+              <>
+                {type !== 'Transfer' && ' · '}
+                {transfers.length} transferência{transfers.length === 1 ? '' : 's'}
+              </>
+            )}
+          </p>
+        </div>
+      )}
+      <div className="space-y-4 md:hidden">
+        {days.map((d) => (
+          <section key={d.date}>
+            <h2 className="mb-1 px-1 text-xs font-semibold tracking-wide text-muted uppercase">{dayLabel(d.date)}</h2>
+            <ul className="card divide-y divide-line px-3">
+              {d.rows.map((row) => (
+                <li key={`${row.kind}${row.id}`}>
+                  {row.kind === 'tr' ? (
+                    <TransferItem t={row.t} showDate={false} onClick={() => openTransfer(row.t)} />
+                  ) : (
+                    <TxItem t={row.t} showDate={false} onClick={() => openTransaction(row.t)} />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+        {data && rows.length === 0 && (
+          <div className="card px-4 py-10 text-center text-muted">
+            Sem transações para este filtro.
+            <button type="button" className="btn-primary mx-auto mt-4 flex" onClick={() => openTransaction()}>
+              <Icon name="plus" /> Adicionar uma
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="card hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-line bg-bg text-left text-xs tracking-wide text-muted uppercase">
@@ -466,6 +546,29 @@ export default function TransactionsPage() {
       )}
     </div>
   )
+}
+
+function Total({ label, value, className }: { label: string; value: number; className: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted">{label}</div>
+      <div className={cx('font-semibold tabular', className)}>{formatMoney(value)}</div>
+    </div>
+  )
+}
+
+const dayFormat = new Intl.DateTimeFormat('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
+
+/** "Hoje", "Ontem" or e.g. "sábado, 3 de outubro" (with the year when it isn't this year). */
+function dayLabel(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((today.getTime() - date.getTime()) / 86_400_000)
+  if (days === 0) return 'Hoje'
+  if (days === 1) return 'Ontem'
+  return dayFormat.format(date) + (y !== today.getFullYear() ? ` de ${y}` : '')
 }
 
 function AccountDot({ kind, color }: { kind: string; color: string | null }) {

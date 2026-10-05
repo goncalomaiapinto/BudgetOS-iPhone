@@ -348,16 +348,16 @@ export default function PlanPage() {
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Previsão</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">Previsão</h1>
           <p className="text-xs text-muted">
             Defina quanto espera receber e gastar e compare com o que realmente aconteceu.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {data && (
             <span
               className={cx(
-                'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                'rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
                 data.status === 'current' ? 'bg-month text-white' : 'bg-fg/10 text-muted',
               )}
             >
@@ -570,7 +570,7 @@ function Card({ label, hint, children }: { label: string; hint?: string; childre
 
 function Pair({ planned, actual, signed }: { planned: number; actual: number; signed?: boolean }) {
   return (
-    <div className="flex items-baseline gap-1.5 tabular">
+    <div className="flex flex-wrap items-baseline gap-x-1.5 tabular">
       <span className="text-sm text-muted">{formatMoney(planned)}</span>
       <Icon name="right" size={12} className="text-muted" />
       <span className={cx('text-xl font-semibold tracking-tight', signed && actual < 0 && 'text-neg', signed && actual > 0 && 'text-pos')}>

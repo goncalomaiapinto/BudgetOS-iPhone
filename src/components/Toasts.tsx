@@ -5,7 +5,7 @@ import { Icon } from './Icon'
 export function Toasts() {
   const { toasts } = useApp()
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-[60] flex flex-col items-end gap-2" aria-live="polite">
+    <div className="pointer-events-none fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[60] flex flex-col items-center gap-2 md:inset-x-auto md:right-4 md:bottom-4 md:items-end" aria-live="polite">
       {toasts.map((t) => (
         <div
           key={t.id}

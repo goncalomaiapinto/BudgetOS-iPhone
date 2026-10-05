@@ -3,6 +3,8 @@
 const paths: Record<string, string> = {
   x: 'M18 6 6 18M6 6l12 12',
   plus: 'M12 5v14M5 12h14',
+  home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z',
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
   left: 'm15 18-6-6 6-6',
   right: 'm9 18 6-6-6-6',
   up: 'm18 15-6-6-6 6',

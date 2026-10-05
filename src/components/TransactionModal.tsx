@@ -93,6 +93,8 @@ export function TransactionModal() {
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  // On phones there's no hover row to delete from, so editing offers "Remover" (second tap confirms).
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const amountRef = useRef<HTMLInputElement>(null)
 
   function defaultCategory(t: EntryType): number | '' {
@@ -235,6 +237,24 @@ export function TransactionModal() {
     }
   }
 
+  const remove = async () => {
+    if (!confirmRemove) {
+      setConfirmRemove(true)
+      return
+    }
+    setBusy(true)
+    try {
+      if (editingTransfer) await api.transfers.remove(editingTransfer.id)
+      else if (editing) await api.transactions.remove(editing.id)
+      refresh()
+      toast(editingTransfer ? 'Transferência removida.' : 'Transação removida.')
+      closeTransaction()
+    } catch (e) {
+      toast((e as Error).message, 'error')
+      setBusy(false)
+    }
+  }
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
     void save(false)
@@ -248,9 +268,21 @@ export function TransactionModal() {
       onClose={closeTransaction}
       footer={
         <>
+          {(editing || editingTransfer) && (
+            <button
+              type="button"
+              className={cx('btn md:mr-auto', confirmRemove ? 'border-transparent bg-exp text-white' : 'text-neg')}
+              disabled={busy}
+              onClick={remove}
+            >
+              <Icon name="trash" />
+              {confirmRemove ? 'Confirmar' : 'Remover'}
+            </button>
+          )}
           {!editing && !editingTransfer && (
             <button type="button" className="btn" disabled={busy} onClick={() => save(true)} title="Shift+Enter">
-              Guardar e adicionar outra
+              <span className="md:hidden">Guardar e outra</span>
+              <span className="hidden md:inline">Guardar e adicionar outra</span>
             </button>
           )}
           <button type="submit" form="tx-form" className="btn-primary" disabled={busy} title="Enter">
@@ -493,7 +525,7 @@ export function TransactionModal() {
           {errors.description && <p className="mt-1 text-xs text-neg">{errors.description}</p>}
         </div>
 
-        <p className="text-xs text-muted">
+        <p className="hidden text-xs text-muted md:block">
           <kbd className="font-sans">Enter</kbd> guarda
           {!editing && (
             <>

@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [editing, setEditing] = useState<Account | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Account | null>(null)
   const [restoring, setRestoring] = useState<File | null>(null)
+  const [actionsFor, setActionsFor] = useState<number | null>(null) // phones: index of the account whose ⋯ sheet is open
 
   useEffect(() => {
     api.settings
@@ -61,7 +62,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <h1 className="text-xl font-semibold">Definições</h1>
+      <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">Definições</h1>
       {error && <p className="text-sm text-neg">{error}</p>}
 
       <section className="card space-y-3 p-5">
@@ -90,11 +91,78 @@ export default function SettingsPage() {
             <h2 className="font-semibold">Contas</h2>
             <p className="text-xs text-muted">De onde sai e para onde entra o dinheiro de cada transação.</p>
           </div>
-          <button type="button" className="btn h-8" onClick={() => setEditing('new')}>
+          <button type="button" className="btn h-8 shrink-0 whitespace-nowrap" onClick={() => setEditing('new')}>
             <Icon name="plus" /> Nova conta
           </button>
         </div>
-        <div className="overflow-x-auto">
+        {/* Phones: a list (tap = edit, ⋯ = order / delete) instead of the wide table */}
+        <ul className="divide-y divide-line md:hidden">
+          {accounts.map((a, i) => (
+            <li key={a.id} className={cx('flex items-center gap-2 pr-2', !a.isActive && 'opacity-60')}>
+              <button type="button" className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left active:bg-fg/5" onClick={() => setEditing(a)}>
+                {a.kind === 'MealCard' ? (
+                  <Icon name="card" size={16} className="shrink-0 text-[#b8a444]" />
+                ) : (
+                  <span className="size-3 shrink-0 rounded-full" style={{ background: a.color ?? 'var(--muted)' }} />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate font-medium">{a.name}</span>
+                    {a.isDefault && <Badge>principal</Badge>}
+                    {!a.isActive && <Badge>inativa</Badge>}
+                  </span>
+                  <span className="block text-xs text-muted tabular">
+                    inicial {formatMoney(a.openingBalance)} · {a.transactionCount} transaç{a.transactionCount === 1 ? 'ão' : 'ões'}
+                  </span>
+                </span>
+                <span className={cx('font-semibold tabular', a.balance < 0 && 'text-neg')}>{formatMoney(a.balance)}</span>
+              </button>
+              <button type="button" className="icon-btn" onClick={() => setActionsFor(i)} aria-label={`Ações: ${a.name}`} aria-haspopup="dialog">
+                <Icon name="more" size={20} />
+              </button>
+            </li>
+          ))}
+        </ul>
+        {actionsFor !== null && accounts[actionsFor] && (
+          <Modal title={accounts[actionsFor].name} onClose={() => setActionsFor(null)}>
+            <ul className="-mx-2 -my-1">
+              {[
+                { label: 'Editar', icon: 'edit', onClick: () => setEditing(accounts[actionsFor]) },
+                { label: 'Subir', icon: 'up', onClick: () => move(actionsFor, -1), disabled: actionsFor === 0 },
+                { label: 'Descer', icon: 'down', onClick: () => move(actionsFor, 1), disabled: actionsFor === accounts.length - 1 },
+                {
+                  label: 'Apagar',
+                  icon: 'trash',
+                  onClick: () => setDeleting(accounts[actionsFor]),
+                  disabled: accounts[actionsFor].isDefault,
+                  danger: true,
+                },
+              ].map((it) => (
+                <li key={it.label}>
+                  <button
+                    type="button"
+                    disabled={it.disabled}
+                    onClick={() => {
+                      setActionsFor(null)
+                      it.onClick()
+                    }}
+                    className={cx(
+                      'flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left font-medium active:bg-fg/5 disabled:opacity-35',
+                      it.danger && 'text-neg',
+                    )}
+                  >
+                    <Icon name={it.icon} size={18} />
+                    {it.label}
+                    {it.label === 'Apagar' && accounts[actionsFor].isDefault && (
+                      <span className="text-xs font-normal text-muted">(a principal não pode ser apagada)</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Modal>
+        )}
+        <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead className="bg-bg text-left text-xs tracking-wide text-muted uppercase">
             <tr>

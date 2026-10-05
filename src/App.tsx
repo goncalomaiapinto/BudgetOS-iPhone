@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Modal } from './components/Modal'
 import { Icon } from './components/Icon'
 import { Toasts } from './components/Toasts'
 import { TransactionModal } from './components/TransactionModal'
@@ -23,8 +24,24 @@ const nav = [
   { to: '/definicoes', label: 'Definições', icon: 'settings' },
 ]
 
+// Phone: three tabs + the add button in the middle; the rest lives under "Mais".
+const tabs = [
+  { to: '/', label: 'Início', icon: 'home' },
+  { to: '/transacoes', label: 'Transações', icon: 'list' },
+  { to: '/previsao', label: 'Previsão', icon: 'target' },
+]
+const more = [
+  { to: '/orcamento', label: 'Orçamento', icon: 'grid', hint: 'Grelha do ano, mês a mês' },
+  { to: '/investimentos', label: 'Investimentos', icon: 'trend', hint: 'Valor, reforços e ganhos' },
+  { to: '/categorias', label: 'Categorias', icon: 'tag', hint: 'Categorias e subcategorias' },
+  { to: '/definicoes', label: 'Definições', icon: 'settings', hint: 'Contas, data de início, cópia de segurança' },
+]
+
 export default function App() {
   const { modal, openTransaction, categoriesError } = useApp()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const { pathname } = useLocation()
+  const inMore = more.some((m) => m.to === pathname)
 
   // Global shortcut: N opens "Nova transação" (unless typing somewhere or a dialog is open).
   useEffect(() => {
@@ -44,7 +61,7 @@ export default function App() {
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-52 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="flex items-center gap-2.5 px-4 py-4">
-          <img src="/favicon.svg" alt="" className="size-7" />
+          <img src="./favicon.svg" alt="" className="size-7" />
           <div className="leading-tight">
             <div className="text-sm font-semibold">Orçamento</div>
             <div className="text-xs text-muted">Pessoal</div>
@@ -74,23 +91,7 @@ export default function App() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur md:px-6">
-          {/* Compact tabs for narrow windows */}
-          <nav className="flex gap-1 overflow-x-auto md:hidden">
-            {nav.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.to === '/'}
-                title={n.label}
-                className={({ isActive }) =>
-                  cx('icon-btn size-9', isActive && 'bg-inc text-white hover:bg-inc hover:text-white')
-                }
-              >
-                <Icon name={n.icon} />
-              </NavLink>
-            ))}
-          </nav>
+        <header className="sticky top-0 z-30 hidden items-center gap-2 border-b border-line bg-surface/90 px-6 py-2.5 backdrop-blur md:flex">
           <div className="ml-auto" />
           <button type="button" className="btn-primary h-9 px-3 sm:px-4" onClick={() => openTransaction()} title="Nova transação" aria-label="Nova transação">
             <Icon name="plus" />
@@ -104,7 +105,7 @@ export default function App() {
           </div>
         )}
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">
+        <main className="min-w-0 flex-1 px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+6.5rem)] md:p-6">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/orcamento" element={<BudgetPage />} />
@@ -118,8 +119,75 @@ export default function App() {
         </main>
       </div>
 
+      {/* Phone tab bar: frosted, above the home indicator */}
+      <nav
+        aria-label="Navegação"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 md:hidden"
+      >
+        {tabs.slice(0, 2).map((t) => (
+          <Tab key={t.to} {...t} />
+        ))}
+        <div className="flex items-start justify-center">
+          <button
+            type="button"
+            onClick={() => openTransaction()}
+            aria-label="Nova transação"
+            className="-mt-5 flex size-14 items-center justify-center rounded-full bg-inc text-white shadow-lg ring-4 shadow-inc/30 ring-bg transition-transform active:scale-95"
+          >
+            <Icon name="plus" size={26} />
+          </button>
+        </div>
+        <Tab {...tabs[2]} />
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          className={cx('tab-item', inMore ? 'text-inc dark:text-[#9fc0ea]' : 'text-muted')}
+        >
+          <Icon name="more" size={24} />
+          <span>Mais</span>
+        </button>
+      </nav>
+
+      {moreOpen && (
+        <Modal title="Mais" onClose={() => setMoreOpen(false)}>
+          <ul className="-mx-2 -my-1">
+            {more.map((m) => (
+              <li key={m.to}>
+                <NavLink
+                  to={m.to}
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    cx('flex min-h-14 items-center gap-3 rounded-xl px-2 py-2 active:bg-fg/5', isActive && 'bg-inc/10')
+                  }
+                >
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-inc/10 text-inc dark:bg-inc/30 dark:text-[#9fc0ea]">
+                    <Icon name={m.icon} size={20} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{m.label}</span>
+                    <span className="block text-xs text-muted">{m.hint}</span>
+                  </span>
+                  <Icon name="right" className="text-muted" />
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </Modal>
+      )}
+
       {modal.open && <TransactionModal key={modal.transfer ? `t${modal.transfer.id}` : (modal.transaction?.id ?? 'new')} />}
       <Toasts />
     </div>
+  )
+}
+
+function Tab({ to, label, icon }: { to: string; label: string; icon: string }) {
+  return (
+    <NavLink to={to} end={to === '/'} className={({ isActive }) => cx('tab-item', isActive ? 'text-inc dark:text-[#9fc0ea]' : 'text-muted')}>
+      <Icon name={icon} size={24} />
+      <span>{label}</span>
+    </NavLink>
   )
 }

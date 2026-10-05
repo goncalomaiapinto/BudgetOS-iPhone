@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { Icon } from '../components/Icon'
 import { PeriodNav, monthLabel } from '../components/PeriodNav'
+import { TxItem } from '../components/TxItem'
 import { api, type Dashboard } from '../lib/api'
 import { useApp } from '../lib/app-context'
 import { cx, formatDate, formatMoney, formatPercent, MONTHS, MONTHS_SHORT, shiftMonth } from '../lib/format'
@@ -66,7 +67,10 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">
+          <span className="md:hidden">Início</span>
+          <span className="hidden md:inline">Dashboard</span>
+        </h1>
         <PeriodNav
           label={monthLabel(year, month)}
           onPrev={() => go(-1)}
@@ -79,6 +83,8 @@ export default function DashboardPage() {
 
       {data && (
         <>
+          <Hero data={data} netWorth={netWorth} prevNetWorth={prevNetWorth} prevName={prevName} />
+
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
             <StatCard
               label="Receita do mês"
@@ -106,6 +112,7 @@ export default function DashboardPage() {
               prevName={prevName}
             />
             <StatCard
+              className="hidden md:block"
               label="Saldo acumulado"
               value={data.current.balance === null ? '—' : formatMoney(data.current.balance)}
               valueClass={(data.current.balance ?? 0) < 0 ? 'text-neg' : undefined}
@@ -175,7 +182,7 @@ export default function DashboardPage() {
               goodWhenUp
               prevName={prevName}
             />
-            <Link to="/investimentos" className="contents">
+            <Link to="/investimentos" className="hidden md:contents">
               <StatCard
                 label="Investimentos"
                 value={formatMoney(data.investments)}
@@ -391,9 +398,17 @@ export default function DashboardPage() {
               </Link>
             </div>
             {data.latestTransactions.length === 0 ? (
-              <Empty text="Ainda não há transações. Carregue em N para adicionar a primeira." />
+              <Empty text="Ainda não há transações. Use o botão + para adicionar a primeira." />
             ) : (
-              <ul className="divide-y divide-line">
+              <>
+              <ul className="-mx-1 divide-y divide-line md:hidden">
+                {data.latestTransactions.map((t) => (
+                  <li key={t.id}>
+                    <TxItem t={t} onClick={() => openTransaction(t)} />
+                  </li>
+                ))}
+              </ul>
+              <ul className="hidden divide-y divide-line md:block">
                 {data.latestTransactions.map((t) => (
                   <li
                     key={t.id}
@@ -413,6 +428,7 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
+              </>
             )}
           </div>
         </>
@@ -441,7 +457,82 @@ function absDelta(cur: number, prev: number): Delta {
 const fmtPp = (v: number) =>
   `${v >= 0 ? '+' : '−'}${new Intl.NumberFormat('pt-PT', { maximumFractionDigits: 1 }).format(Math.abs(v * 100))}`
 
+/** Phone only: the month's balance across accounts, investments and net worth in one card. */
+function Hero({
+  data,
+  netWorth,
+  prevNetWorth,
+  prevName,
+}: {
+  data: Dashboard
+  netWorth: number | null
+  prevNetWorth: number | null
+  prevName: string
+}) {
+  const balance = data.current.balance
+  const diff = balance !== null && data.previous.balance !== null ? balance - data.previous.balance : null
+  const worthDiff = netWorth !== null && prevNetWorth !== null ? netWorth - prevNetWorth : null
+  const signed = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${formatMoney(Math.abs(v))}`
+  return (
+    <section
+      aria-label="Saldo acumulado"
+      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1f497d] to-[#2f6db5] p-5 text-white shadow-lg shadow-inc/25 md:hidden"
+    >
+      <div aria-hidden="true" className="pointer-events-none absolute -top-16 -right-12 size-48 rounded-full bg-white/10" />
+      <div className="text-sm text-white/75">Saldo acumulado</div>
+      <div className="mt-0.5 text-[34px] leading-tight font-bold tracking-tight tabular">
+        {balance === null ? '—' : formatMoney(balance)}
+      </div>
+      {diff !== null && (
+        <div className="mt-0.5 text-sm text-white/80 tabular">
+          {diff === 0 ? `igual a ${prevName}` : `${signed(diff)} vs ${prevName}`}
+        </div>
+      )}
+
+      {data.accountBalances.length > 0 && (
+        <ul className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+          {data.accountBalances.map((a) => (
+            <li key={a.accountId} className="shrink-0 rounded-2xl bg-white/12 px-3 py-2 backdrop-blur-sm">
+              <div className="flex items-center gap-1.5 text-xs text-white/80">
+                {a.kind === 'MealCard' ? (
+                  <Icon name="card" size={12} />
+                ) : (
+                  <span className="size-2 rounded-full ring-1 ring-white/60" style={{ background: a.color ?? '#fff' }} />
+                )}
+                {a.name}
+              </div>
+              <div className="font-semibold tabular">{a.balance === null ? '—' : formatMoney(a.balance)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-3">
+        <Link to="/investimentos" className="block active:opacity-70">
+          <div className="flex items-center gap-1 text-xs text-white/75">
+            Investimentos <Icon name="right" size={12} />
+          </div>
+          <div className="font-semibold tabular">{formatMoney(data.investments)}</div>
+          {data.current.invested !== 0 && (
+            <div className="text-xs text-white/75 tabular">+{formatMoney(data.current.invested)} este mês</div>
+          )}
+        </Link>
+        <div>
+          <div className="text-xs text-white/75">Património</div>
+          <div className="font-semibold tabular">{netWorth === null ? '—' : formatMoney(netWorth)}</div>
+          {worthDiff !== null && worthDiff !== 0 && (
+            <div className="text-xs text-white/75 tabular">
+              {signed(worthDiff)} vs {prevName}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function StatCard({
+  className,
   label,
   value,
   valueClass,
@@ -451,6 +542,7 @@ function StatCard({
   goodWhenUp,
   prevName,
 }: {
+  className?: string
   label: string
   value: string
   valueClass?: string
@@ -464,7 +556,7 @@ function StatCard({
 }) {
   const good = delta && !delta.zero && delta.up === goodWhenUp
   return (
-    <div className="card p-4">
+    <div className={cx('card p-4', className)}>
       <div className="text-xs font-medium text-muted">{label}</div>
       <div className={cx('mt-1 text-xl font-semibold tracking-tight tabular', valueClass)}>{value}</div>
       {extra && <div className="mt-0.5 text-xs text-muted tabular" title="Conta à ordem · Cartão Refeição">{extra}</div>}

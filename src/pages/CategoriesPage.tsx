@@ -103,19 +103,29 @@ export default function CategoriesPage() {
                   />
                   <button
                     type="button"
-                    className="cursor-pointer text-left font-semibold"
+                    className="min-w-0 flex-1 cursor-pointer text-left font-semibold md:flex-none"
                     onClick={() => toggleExpanded(c.id)}
                   >
-                    {c.name}
+                    <span className="block truncate">{c.name}</span>
+                    <span className="block text-xs font-normal text-muted md:hidden">
+                      {subs.length} subcategoria{subs.length === 1 ? '' : 's'} · {c.transactionCount} transaç
+                      {c.transactionCount === 1 ? 'ão' : 'ões'}
+                    </span>
                   </button>
                   {!c.isActive && <Badge>inativa</Badge>}
-                  {c.isSavings && <Badge>poupança / investimento</Badge>}
-                  <span className="text-xs text-muted">
+                  {c.isSavings && (
+                    <Badge>
+                      <span className="md:hidden">poupança</span>
+                      <span className="hidden md:inline">poupança / investimento</span>
+                    </Badge>
+                  )}
+                  <span className="hidden text-xs text-muted md:inline">
                     {subs.length} subcategoria{subs.length === 1 ? '' : 's'}
                   </span>
-                  <span className="ml-auto" />
-                  <TxCount n={c.transactionCount} />
+                  <span className="hidden md:ml-auto md:block" />
+                  <TxCount n={c.transactionCount} className="hidden md:inline" />
                   <RowActions
+                    name={c.name}
                     isActive={c.isActive}
                     canUp={i > 0}
                     canDown={i < list.length - 1}
@@ -137,13 +147,14 @@ export default function CategoriesPage() {
                     {subs.map((s, j) => (
                       <li
                         key={s.id}
-                        className={cx('group flex items-center gap-2 py-1.5 pr-3 pl-14 hover:bg-fg/[0.03]', !s.isActive && 'opacity-60')}
+                        className={cx('group flex items-center gap-2 py-1.5 pr-3 pl-12 hover:bg-fg/[0.03] md:pl-14', !s.isActive && 'opacity-60')}
                       >
                         <span className="min-w-0 truncate">{s.name}</span>
                         {!s.isActive && <Badge>inativa</Badge>}
                         <span className="ml-auto" />
                         <TxCount n={s.transactionCount} />
                         <RowActions
+                          name={s.name}
                           isActive={s.isActive}
                           canUp={j > 0}
                           canDown={j < subs.length - 1}
@@ -160,7 +171,7 @@ export default function CategoriesPage() {
                         />
                       </li>
                     ))}
-                    <li className="flex items-center gap-2 pt-2 pr-3 pl-14">
+                    <li className="flex items-center gap-2 pt-2 pr-3 pl-12 md:pl-14">
                       {adding?.categoryId === c.id ? (
                         <form
                           className="flex w-full max-w-md gap-2"
@@ -210,7 +221,7 @@ export default function CategoriesPage() {
     <div className="mx-auto max-w-4xl space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Categorias</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">Categorias</h1>
           <p className="text-xs text-muted">
             Editar nomes ou cores não altera as transações. Desativar esconde o item nas novas transações sem perder o
             histórico.
@@ -246,10 +257,10 @@ function Badge({ children }: { children: ReactNode }) {
   return <span className="rounded bg-fg/10 px-1.5 py-0.5 text-[11px] font-medium text-muted">{children}</span>
 }
 
-function TxCount({ n }: { n: number }) {
+function TxCount({ n, className }: { n: number; className?: string }) {
   return (
     <span
-      className={cx('min-w-24 text-right text-xs tabular', n > 0 ? 'text-fg' : 'text-muted')}
+      className={cx('text-right text-xs tabular md:min-w-24', n > 0 ? 'text-fg' : 'text-muted', className)}
       title="Transações associadas"
     >
       {n} transaç{n === 1 ? 'ão' : 'ões'}
@@ -258,6 +269,7 @@ function TxCount({ n }: { n: number }) {
 }
 
 function RowActions(p: {
+  name: string
   isActive: boolean
   canUp: boolean
   canDown: boolean
@@ -267,8 +279,47 @@ function RowActions(p: {
   onEdit: () => void
   onDelete: () => void
 }) {
+  const [sheet, setSheet] = useState(false)
+  // Phones: one "⋯" button opens the same actions as a sheet (five icons don't fit a row).
+  const act = (f: () => void) => () => {
+    setSheet(false)
+    f()
+  }
+  const items: { label: string; icon: string; onClick: () => void; disabled?: boolean; danger?: boolean }[] = [
+    { label: 'Editar', icon: 'edit', onClick: p.onEdit },
+    { label: 'Subir', icon: 'up', onClick: p.onUp, disabled: !p.canUp },
+    { label: 'Descer', icon: 'down', onClick: p.onDown, disabled: !p.canDown },
+    { label: p.isActive ? 'Desativar' : 'Ativar', icon: p.isActive ? 'eyeOff' : 'eye', onClick: p.onToggleActive },
+    { label: 'Apagar', icon: 'trash', onClick: p.onDelete, danger: true },
+  ]
   return (
-    <span className="flex items-center opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+    <>
+    <button type="button" className="icon-btn md:hidden" onClick={() => setSheet(true)} aria-label={`Ações: ${p.name}`} aria-haspopup="dialog">
+      <Icon name="more" size={20} />
+    </button>
+    {sheet && (
+      <Modal title={p.name} onClose={() => setSheet(false)}>
+        <ul className="-mx-2 -my-1">
+          {items.map((it) => (
+            <li key={it.label}>
+              <button
+                type="button"
+                disabled={it.disabled}
+                onClick={act(it.onClick)}
+                className={cx(
+                  'flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left font-medium active:bg-fg/5 disabled:opacity-35',
+                  it.danger && 'text-neg',
+                )}
+              >
+                <Icon name={it.icon} size={18} />
+                {it.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Modal>
+    )}
+    <span className="hidden items-center opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:flex">
       <button type="button" className="icon-btn" disabled={!p.canUp} onClick={p.onUp} aria-label="Subir" title="Subir">
         <Icon name="up" />
       </button>
@@ -291,6 +342,7 @@ function RowActions(p: {
         <Icon name="trash" />
       </button>
     </span>
+    </>
   )
 }
 

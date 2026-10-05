@@ -107,7 +107,7 @@ function Row({
     <tr className={cx('group/row', kind === 'item' && 'hover:[&>td]:brightness-[0.97] dark:hover:[&>td]:brightness-125')}>
       <td
         className={cx(
-          'sticky left-0 z-10 border-r border-b border-line/70 px-3 py-1 whitespace-nowrap',
+          'sticky left-0 z-10 max-w-36 overflow-hidden border-r border-b border-line/70 px-3 py-1 text-ellipsis whitespace-nowrap md:max-w-none',
           labelBg[kind] || labelExtra,
           strong && 'font-semibold',
           labelClass,
@@ -337,14 +337,21 @@ export default function BudgetPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Orçamento</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">Orçamento</h1>
           <p className="text-xs text-muted">
-            Valores em euros · clique num valor para ver as transações · duplo clique numa célula para adicionar ·
-            clique num grupo para o recolher
+            <span className="md:hidden">Valores em euros · toque num valor para ver as transações · deslize para ver os meses</span>
+            <span className="hidden md:inline">
+              Valores em euros · clique num valor para ver as transações · duplo clique numa célula para adicionar ·
+              clique num grupo para o recolher
+            </span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-lg border border-line bg-surface p-0.5 text-xs font-medium" role="radiogroup" aria-label="Conta">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-3 md:w-auto">
+          <div
+            className="inline-flex max-w-full min-w-0 overflow-x-auto rounded-lg border border-line bg-surface p-0.5 text-xs font-medium [scrollbar-width:none]"
+            role="radiogroup"
+            aria-label="Conta"
+          >
             {[undefined, ...accounts.filter((a) => a.isActive || a.id === account)].map((a) => (
               <button
                 key={a?.id ?? 'all'}
@@ -353,7 +360,7 @@ export default function BudgetPage() {
                 aria-checked={account === a?.id}
                 onClick={() => setFilter(year, a?.id)}
                 className={cx(
-                  'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2.5 transition-colors',
+                  'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-3 whitespace-nowrap transition-colors md:h-7 md:px-2.5',
                   account === a?.id ? 'bg-inc text-white' : 'text-muted hover:text-fg',
                 )}
               >
@@ -386,7 +393,7 @@ export default function BudgetPage() {
           <table className="w-full border-separate border-spacing-0 text-[13px] tabular">
             <thead className="sticky top-0 z-20">
               <tr className="text-white">
-                <th className="sticky left-0 z-30 w-52 min-w-52 border-r border-line/70 bg-month px-3 py-2 text-left font-semibold">
+                <th className="sticky left-0 z-30 w-36 min-w-36 border-r border-line/70 bg-month px-3 py-2 text-left font-semibold md:w-52 md:min-w-52">
                   {year}
                 </th>
                 {visible.map((m) => (

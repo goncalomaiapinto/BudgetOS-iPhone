@@ -73,7 +73,7 @@ export default function InvestmentsPage() {
     <div className="mx-auto max-w-6xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Investimentos</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-xl md:font-semibold">Investimentos</h1>
           <p className="text-xs text-muted">
             O dinheiro entra como despesa numa subcategoria ligada; o valor atualiza-se à mão de vez em quando.
           </p>

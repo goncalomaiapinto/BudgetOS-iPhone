@@ -94,6 +94,7 @@ body {
 }
 
 body {
+  -webkit-tap-highlight-color: transparent;
   font-family:
     'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
@@ -132,6 +133,55 @@ body {
 @utility card {
     @apply rounded-xl border border-line bg-surface;
   }
+
+/* Phone tab bar item: 44pt+ target, icon over a short label. */
+@utility tab-item {
+    @apply flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-medium outline-offset-[-6px] transition-colors active:opacity-60;
+  }
+
+/* Sheets slide up from the bottom on phones (no motion when the user asked for less). */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (max-width: 767.98px) and (prefers-reduced-motion: no-preference) {
+  .sheet-in {
+    animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+/* Touch sizes on phones; 16px fields stop iOS Safari from zooming in when one is focused. */
+@media (max-width: 767.98px) {
+  body {
+    font-size: 15px;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  .input {
+    height: 2.75rem;
+  }
+  .btn,
+  .btn-primary,
+  .btn-danger,
+  .btn-ghost {
+    min-height: 2.75rem;
+  }
+  .icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .btn:active,
+  .btn-primary:active,
+  .btn-danger:active,
+  .btn-ghost:active,
+  .icon-btn:active {
+    opacity: 0.7;
+  }
+}
 
 @utility label {
     @apply mb-1 block text-xs font-medium tracking-wide text-muted uppercase;

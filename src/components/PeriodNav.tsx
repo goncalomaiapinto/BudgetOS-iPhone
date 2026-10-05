@@ -11,16 +11,16 @@ interface Props {
 /** "‹ Setembro 2026 ›" style navigator. */
 export function PeriodNav({ label, onPrev, onNext, onToday }: Props) {
   return (
-    <div className="inline-flex items-center gap-1">
+    <div className="inline-flex items-center gap-1 rounded-full border border-line bg-surface p-1 md:rounded-none md:border-0 md:bg-transparent md:p-0">
       <button type="button" className="icon-btn size-8" onClick={onPrev} aria-label="Anterior">
         <Icon name="left" />
       </button>
-      <span className="min-w-36 text-center text-base font-semibold capitalize tabular">{label}</span>
+      <span className="min-w-32 text-center text-base font-semibold capitalize tabular md:min-w-36">{label}</span>
       <button type="button" className="icon-btn size-8" onClick={onNext} aria-label="Seguinte">
         <Icon name="right" />
       </button>
       {onToday && (
-        <button type="button" className="btn-ghost ml-1 h-8 px-2 text-xs" onClick={onToday}>
+        <button type="button" className="btn-ghost ml-1 h-8 rounded-full px-3 text-xs" onClick={onToday}>
           Hoje
         </button>
       )}
