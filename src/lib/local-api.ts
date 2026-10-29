@@ -297,6 +297,7 @@ function listTransactions(d: Data, q: Q) {
   }
   const sorts: Record<string, (a: TxRow, b: TxRow) => number> = {
     date_asc: (a, b) => a.date.localeCompare(b.date) || a.id - b.id,
+    created_desc: (a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id,
     amount_desc: (a, b) => b.amount - a.amount || b.date.localeCompare(a.date),
     amount_asc: (a, b) => a.amount - b.amount || b.date.localeCompare(a.date),
   }

@@ -17,7 +17,7 @@ import {
 import { Icon } from '../components/Icon'
 import { PeriodNav, monthLabel } from '../components/PeriodNav'
 import { TxItem } from '../components/TxItem'
-import { api, type Dashboard } from '../lib/api'
+import { api, type Dashboard, type Transaction } from '../lib/api'
 import { useApp } from '../lib/app-context'
 import { cx, formatDate, formatMoney, formatPercent, MONTHS, MONTHS_SHORT, shiftMonth } from '../lib/format'
 
@@ -78,6 +78,8 @@ export default function DashboardPage() {
           onToday={() => setParams({}, { replace: true })}
         />
       </div>
+
+      <LastAdded />
 
       {error && <div className="card border-exp/40 bg-exp-row px-4 py-3 text-sm">{error}</div>}
 
@@ -434,6 +436,46 @@ export default function DashboardPage() {
         </>
       )}
     </div>
+  )
+}
+
+/** "Último registo": the transaction recorded most recently (when it was added to the app, not its date). */
+function LastAdded() {
+  const { version, openTransaction } = useApp()
+  const [t, setT] = useState<Transaction | null>(null)
+  useEffect(() => {
+    api.transactions
+      .list({ sort: 'created_desc', pageSize: 1 })
+      .then((p) => setT(p.items[0] ?? null))
+      .catch(() => {})
+  }, [version])
+  if (!t) return null
+  // The PC API sends UTC without a zone suffix.
+  const added = new Date(/Z$|[+-]\d\d:\d\d$/.test(t.createdAt) ? t.createdAt : `${t.createdAt}Z`)
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.round((day(new Date()) - day(added)) / 86_400_000)
+  const when = days === 0 ? 'hoje' : days === 1 ? 'ontem' : `há ${days} dias`
+  return (
+    <button
+      type="button"
+      onClick={() => openTransaction(t)}
+      className="card flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 px-4 py-2.5 text-left text-sm hover:bg-fg/[0.03]"
+      title="Abrir a última transação registada"
+    >
+      <Icon name="calendar" className="shrink-0 text-muted" />
+      <span className="text-muted">Último registo</span>
+      <span className="font-medium tabular">
+        {added.toLocaleDateString('pt-PT')} ({when})
+      </span>
+      <span className="min-w-0 truncate text-muted">
+        · {t.subCategoryName ?? t.categoryName}
+        {t.description && ` · ${t.description}`} ·{' '}
+        <span className={cx('tabular', t.type === 'Income' ? 'text-pos' : 'text-neg')}>
+          {t.type === 'Income' ? '+' : '−'}
+          {formatMoney(t.amount)}
+        </span>
+      </span>
+    </button>
   )
 }
 
